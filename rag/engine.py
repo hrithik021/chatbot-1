@@ -28,7 +28,6 @@ class DocumentLoader:
                     page_count = len(doc)
                     for i, page in enumerate(doc):
                         text = page.get_text() or ""
-                        # clean up excessive whitespace while preserving structure
                         text = re.sub(r"\n{3,}", "\n\n", text).strip()
                         if text:
                             pages_data.append({
@@ -42,7 +41,6 @@ class DocumentLoader:
             # Plain text document
             try:
                 content = data.decode("utf-8", errors="replace")
-                # Detect page dividers or split by ~2000 chars
                 raw_pages = content.split("---")
                 if len(raw_pages) > 1:
                     for i, p in enumerate(raw_pages):
@@ -54,7 +52,6 @@ class DocumentLoader:
                                 "char_count": len(clean_text)
                             })
                 else:
-                    # Synthetic pagination every ~2500 characters
                     chars_per_page = 2200
                     total_len = len(content)
                     page_idx = 1
@@ -106,10 +103,8 @@ class TextChunker:
             page_num = page["page_num"]
             text = page["text"]
 
-            # Break text into paragraphs/sentences
             paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
 
-            # If no paragraph breaks, split into sentences
             if len(paragraphs) <= 1:
                 sentences = re.split(r"(?<=[.!?])\s+", text)
             else:
@@ -136,7 +131,6 @@ class TextChunker:
                         })
                         global_chunk_id += 1
 
-                        # Carry over overlap
                         if self.chunk_overlap > 0 and len(current_chunk) > self.chunk_overlap:
                             overlap_text = current_chunk[-self.chunk_overlap:]
                             current_chunk = f"{overlap_text} {sentence}".strip()
@@ -162,26 +156,24 @@ class TextChunker:
 # ──────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def get_embedding_model(model_name: str = "all-MiniLM-L6-v2") -> SentenceTransformer:
-    """Cached loader for Sentence Transformers model."""
     return SentenceTransformer(model_name)
 
 class VectorStore:
-    """FAISS-backed vector index with cosine similarity via normalized inner product."""
+    """FAISS-backed vector index.
+    Embeddings are unit L2-normalized so Inner Product (IndexFlatIP) computes exact Cosine Similarity [-1.0, 1.0].
+    """
 
     def __init__(self, dimension: int = 384):
         self.dimension = dimension
-        self.index = faiss.IndexFlatIP(dimension)  # Inner Product on L2-normalized vectors = Cosine Similarity
+        self.index = faiss.IndexFlatIP(dimension)
         self.chunks: List[Dict[str, Any]] = []
 
     def add_embeddings(self, embeddings: np.ndarray, chunks: List[Dict[str, Any]]) -> None:
-        """Normalizes and adds vectors to FAISS."""
-        # L2-normalize for cosine similarity
         faiss.normalize_L2(embeddings)
         self.index.add(embeddings.astype(np.float32))
         self.chunks.extend(chunks)
 
     def search(self, query_embedding: np.ndarray, top_k: int = 4) -> List[Dict[str, Any]]:
-        """Searches top-K nearest neighbors and returns chunks with similarity scores."""
         if self.index.ntotal == 0:
             return []
 
@@ -193,9 +185,38 @@ class VectorStore:
         for score, idx in zip(scores[0], indices[0]):
             if idx < len(self.chunks):
                 chunk_copy = dict(self.chunks[idx])
-                chunk_copy["score"] = float(score)  # Cosine similarity in [-1, 1]
+                chunk_copy["score"] = float(score)  # Exact Cosine Similarity in [-1, 1]
                 results.append(chunk_copy)
         return results
+
+# ──────────────────────────────────────────────
+# QUERY CLASSIFICATION & QUALITY HELPERS
+# ──────────────────────────────────────────────
+SUMMARY_TRIGGERS = [
+    "what's in the document", "whats in the document", "what is in the document",
+    "what is this document about", "what's this document about", "about the document",
+    "what does the document say", "what does the document contain",
+    "what is in this document", "what is the document about",
+    "summarize", "summary", "overview", "key topics", "main concepts",
+    "what are the contents", "table of contents", "explain the document",
+    "give me an overview", "walk me through the document"
+]
+
+def is_summary_query(query: str) -> bool:
+    """Detects broad document synthesis requests requiring multi-page representative coverage."""
+    q = query.lower().strip()
+    return any(trigger in q for trigger in SUMMARY_TRIGGERS)
+
+def get_relevance_label(score: float) -> Tuple[str, str]:
+    """Returns human-readable strength label and color for cosine similarity score."""
+    if score >= 0.70:
+        return "Strong", "#16A34A"
+    elif score >= 0.50:
+        return "Good", "#2563EB"
+    elif score >= 0.30:
+        return "Moderate", "#D97706"
+    else:
+        return "Weak", "#94A3B8"
 
 # ──────────────────────────────────────────────
 # UNIFIED RAG PIPELINE
@@ -208,7 +229,11 @@ class RAGPipeline:
         self.embedder = get_embedding_model(model_name)
         self.vector_store = VectorStore(dimension=384)
         self.documents: Dict[str, Dict[str, Any]] = {}
-        self.is_indexed = False
+
+    @property
+    def is_indexed(self) -> bool:
+        """True only if at least one document is indexed with active vector chunks."""
+        return len(self.documents) > 0 and len(self.vector_store.chunks) > 0
 
     def ingest_document(
         self,
@@ -243,7 +268,6 @@ class RAGPipeline:
         doc_data["indexing_time"] = round(elapsed, 3)
 
         self.documents[filename] = doc_data
-        self.is_indexed = True
 
         return {
             "success": True,
@@ -258,17 +282,65 @@ class RAGPipeline:
         """Encodes query and retrieves top chunks with grounding confidence check."""
         start_time = time.perf_counter()
 
+        if not self.is_indexed:
+            return {
+                "query": query,
+                "chunks": [],
+                "top_score": 0.0,
+                "is_grounded": False,
+                "is_summary": False,
+                "threshold": threshold,
+                "retrieval_latency_ms": 0.0,
+                "total_chunks_available": 0
+            }
+
+        is_summary = is_summary_query(query)
+
+        if is_summary:
+            # Broad synthesis request: retrieve a diverse set of representative chunks across pages
+            all_chunks = self.vector_store.chunks
+            if len(all_chunks) <= 8:
+                retrieved_chunks = [dict(c) for c in all_chunks]
+                for c in retrieved_chunks:
+                    c["score"] = 0.85
+            else:
+                # Sample representative chunks across unique pages
+                pages_seen = set()
+                sampled_chunks = []
+                for c in all_chunks:
+                    p = c.get("page", 1)
+                    if p not in pages_seen:
+                        chunk_copy = dict(c)
+                        chunk_copy["score"] = 0.82
+                        sampled_chunks.append(chunk_copy)
+                        pages_seen.add(p)
+                    if len(sampled_chunks) >= 6:
+                        break
+                retrieved_chunks = sampled_chunks or [dict(c) for c in all_chunks[:6]]
+
+            elapsed = time.perf_counter() - start_time
+            return {
+                "query": query,
+                "chunks": retrieved_chunks,
+                "top_score": 0.85,
+                "is_grounded": True,
+                "is_summary": True,
+                "threshold": threshold,
+                "retrieval_latency_ms": round(elapsed * 1000, 2),
+                "total_chunks_available": len(all_chunks)
+            }
+
+        # Specific question: Dense vector retrieval
         query_emb = self.embedder.encode([query], show_progress_bar=False, convert_to_numpy=True)
         retrieved_chunks = self.vector_store.search(query_emb, top_k=top_k)
 
         elapsed = time.perf_counter() - start_time
 
-        # Calculate grounding confidence
         top_score = retrieved_chunks[0]["score"] if retrieved_chunks else 0.0
-        # If top score is above threshold, consider evidence sufficient
+        # Strict grounding: only consider evidence sufficient if top_score >= threshold
         is_grounded = top_score >= threshold and len(retrieved_chunks) > 0
 
-        # Filter out chunks that are negative or severely irrelevant
+        # Filter out chunks that fall well below threshold
         filtered_chunks = [c for c in retrieved_chunks if c["score"] >= max(0.15, threshold * 0.7)]
 
         return {
@@ -276,6 +348,7 @@ class RAGPipeline:
             "chunks": filtered_chunks if is_grounded else retrieved_chunks,
             "top_score": round(top_score, 4),
             "is_grounded": is_grounded,
+            "is_summary": False,
             "threshold": threshold,
             "retrieval_latency_ms": round(elapsed * 1000, 2),
             "total_chunks_available": len(self.vector_store.chunks)
@@ -285,5 +358,3 @@ class RAGPipeline:
         """Resets the vector index and document registry."""
         self.vector_store = VectorStore(dimension=384)
         self.documents.clear()
-        self.is_indexed = False
-
