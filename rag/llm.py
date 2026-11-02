@@ -78,8 +78,9 @@ class OllamaClient:
 # GROQ CLOUD CLIENT (FREE TIER CLOUD BACKEND)
 # ──────────────────────────────────────────────
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
+    "llama3-8b-8192",
+    "llama3-70b-8192",
     "mixtral-8x7b-32768",
     "gemma2-9b-it"
 ]
@@ -128,11 +129,34 @@ class GroqClient:
                 "error": None
             }
         except Exception as e:
+            err_str = str(e)
+            # Automatic fallback to universally available 8B models if model is not accessible
+            if "model_not_found" in err_str or "does not exist" in err_str:
+                fallback_model = "llama-3.1-8b-instant" if model != "llama-3.1-8b-instant" else "llama3-8b-8192"
+                try:
+                    resp = client.chat.completions.create(
+                        model=fallback_model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature,
+                        max_tokens=1024
+                    )
+                    elapsed = time.perf_counter() - start_time
+                    answer = resp.choices[0].message.content.strip()
+                    return {
+                        "success": True,
+                        "answer": answer,
+                        "latency_ms": round(elapsed * 1000, 2),
+                        "model": fallback_model,
+                        "error": None
+                    }
+                except Exception as e2:
+                    err_str = f"{err_str} | Fallback error: {str(e2)}"
+
             return {
                 "success": False,
-                "answer": f"Groq API Error: {str(e)}",
+                "answer": f"Groq API Error: {err_str}",
                 "latency_ms": 0.0,
                 "model": model,
-                "error": str(e)
+                "error": err_str
             }
 
