@@ -4,6 +4,7 @@ Light enterprise palette (#F7F9FC / #FFFFFF) with deep navy sidebar (#0F2547).
 Fully responsive, pixel-balanced layout with clean text wrapping and typography.
 """
 
+import os
 import time
 import uuid
 import html
@@ -856,10 +857,24 @@ def init_session_state():
         st.session_state.chat_search = ""
 
     if "settings" not in st.session_state:
+        # Detect Groq API key from Streamlit Secrets or Environment
+        default_groq_key = ""
+        try:
+            if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+                default_groq_key = str(st.secrets["GROQ_API_KEY"]).strip()
+            elif "GROQ_API_KEY" in os.environ:
+                default_groq_key = os.environ["GROQ_API_KEY"].strip()
+        except Exception:
+            pass
+
+        # If running in cloud and Groq key is present, auto-default to Groq
+        ollama_live = OllamaClient.is_available()
+        default_backend = "groq" if (not ollama_live and default_groq_key) else "ollama"
+
         st.session_state.settings = {
-            "backend": "ollama",
+            "backend": default_backend,
             "ollama_model": "mistral",
-            "groq_key": "",
+            "groq_key": default_groq_key,
             "groq_model": GROQ_MODELS[0],
             "top_k": 4,
             "similarity_threshold": 0.22,
@@ -1069,10 +1084,17 @@ with st.sidebar:
 # ══════════════════════════════════════════════
 is_indexed = pipeline.is_indexed
 ollama_live = OllamaClient.is_available()
-active_model = settings["ollama_model"] if settings["backend"] == "ollama" else settings["groq_model"]
+backend = settings.get("backend", "ollama")
 
-status_dot_color = "#16A34A" if ollama_live else "#DC2626"
-status_label = f"Ollama · {active_model}" if ollama_live else "Ollama Offline"
+if backend == "ollama":
+    active_model = settings.get("ollama_model", "mistral")
+    status_dot_color = "#16A34A" if ollama_live else "#DC2626"
+    status_label = f"Ollama · {active_model}" if ollama_live else "Ollama Offline"
+else:
+    active_model = settings.get("groq_model", GROQ_MODELS[0])
+    has_key = bool(settings.get("groq_key"))
+    status_dot_color = "#16A34A" if has_key else "#D97706"
+    status_label = f"Groq · {active_model.split('-')[0]}" if has_key else "Groq (Key Needed)"
 
 doc_status_dot = "#16A34A" if is_indexed else "#D97706"
 doc_status_text = "Document Ready" if is_indexed else "No Document"
@@ -1233,12 +1255,40 @@ with col_main:
                         status_type = "INSUFFICIENT_EVIDENCE"
                     else:
                         if settings["backend"] == "ollama":
-                            gen_res = OllamaClient.generate(
-                                model=settings["ollama_model"],
-                                context=context_str,
-                                question=query_to_process,
-                                temperature=settings["temperature"]
-                            )
+                            if not OllamaClient.is_available():
+                                # Check if Groq can be auto-used from secrets or settings
+                                groq_k = settings.get("groq_key") or (str(st.secrets["GROQ_API_KEY"]).strip() if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets else "")
+                                if groq_k:
+                                    gen_res = GroqClient.generate(
+                                        api_key=groq_k,
+                                        model=settings["groq_model"],
+                                        context=context_str,
+                                        question=query_to_process,
+                                        temperature=settings["temperature"]
+                                    )
+                                else:
+                                    gen_res = {
+                                        "success": False,
+                                        "answer": (
+                                            "Ollama runtime is offline. Because this application is hosted on Streamlit Cloud, "
+                                            "it cannot access your local laptop's `localhost:11434` daemon.\n\n"
+                                            "👉 **To enable cloud AI generation:**\n"
+                                            "1. Click **⚙️ Settings & Inference** in the sidebar.\n"
+                                            "2. Switch Runtime to **Groq Cloud (Free Tier)**.\n"
+                                            "3. Enter a free API key from [https://console.groq.com](https://console.groq.com) (or add `GROQ_API_KEY` to your Streamlit App Secrets).\n\n"
+                                            "*(Your document was successfully parsed, and relevant passages were retrieved below!)*"
+                                        ),
+                                        "latency_ms": 0.0,
+                                        "model": "ollama",
+                                        "error": "Ollama offline"
+                                    }
+                            else:
+                                gen_res = OllamaClient.generate(
+                                    model=settings["ollama_model"],
+                                    context=context_str,
+                                    question=query_to_process,
+                                    temperature=settings["temperature"]
+                                )
                         else:
                             gen_res = GroqClient.generate(
                                 api_key=settings["groq_key"],
@@ -1249,7 +1299,7 @@ with col_main:
                             )
                         ans_text = gen_res["answer"]
                         llm_ms = gen_res["latency_ms"]
-                        status_type = "GROUNDED"
+                        status_type = "GROUNDED" if gen_res.get("success") else "DOCUMENT_REQUIRED"
 
                 # Save inspection state (Do not show fake 0.0 ms if LLM was skipped!)
                 st.session_state.latest_inspection = {
@@ -1370,7 +1420,8 @@ with col_main:
                 if not ollama_live:
                     st.error("Ollama runtime is not reachable. Run 'ollama serve' in your terminal.")
             else:
-                settings["groq_key"] = st.text_input("Groq API Key", type="password", value=settings["groq_key"])
+                settings["groq_key"] = st.text_input("Groq API Key (Free)", type="password", value=settings["groq_key"], placeholder="gsk_...")
+                st.caption("Get a free key instantly at [console.groq.com](https://console.groq.com) (no credit card required).")
                 settings["groq_model"] = st.selectbox("Groq Model", GROQ_MODELS, index=0)
 
         with col_s2:
