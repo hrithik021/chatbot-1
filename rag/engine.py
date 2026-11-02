@@ -278,8 +278,8 @@ class RAGPipeline:
             "error": None
         }
 
-    def retrieve(self, query: str, top_k: int = 4, threshold: float = 0.28) -> Dict[str, Any]:
-        """Encodes query and retrieves top chunks with grounding confidence check."""
+    def retrieve(self, query: str, top_k: int = 4, threshold: float = 0.22) -> Dict[str, Any]:
+        """Encodes query and retrieves top chunks with grounding confidence check and hybrid lexical re-ranking."""
         start_time = time.perf_counter()
 
         if not self.is_indexed:
@@ -330,9 +330,30 @@ class RAGPipeline:
                 "total_chunks_available": len(all_chunks)
             }
 
-        # Specific question: Dense vector retrieval
+        # Specific question: Dense vector retrieval + Hybrid Lexical Boost
         query_emb = self.embedder.encode([query], show_progress_bar=False, convert_to_numpy=True)
-        retrieved_chunks = self.vector_store.search(query_emb, top_k=top_k)
+        retrieved_chunks = self.vector_store.search(query_emb, top_k=min(top_k * 3, 12))
+
+        # Hybrid lexical re-ranking to boost exact entity/keyword matches
+        stopwords = {
+            "what", "is", "the", "a", "an", "and", "or", "in", "of", "to", "for",
+            "with", "on", "at", "by", "from", "who", "which", "how", "why", "when",
+            "where", "tell", "me", "about", "can", "you", "does", "do", "explain"
+        }
+        q_words = [w.lower().strip("?,.!:;\"'") for w in query.split() if len(w) > 2]
+        keywords = [w for w in q_words if w not in stopwords]
+
+        for chunk in retrieved_chunks:
+            chunk_text_lower = chunk.get("text", "").lower()
+            if keywords:
+                matches = sum(1 for kw in keywords if kw in chunk_text_lower)
+                lexical_overlap = matches / len(keywords)
+                # Boost dense score with lexical match (up to +0.25)
+                chunk["score"] = min(1.0, chunk["score"] + (lexical_overlap * 0.25))
+
+        # Re-sort after hybrid score boost and truncate to top_k
+        retrieved_chunks.sort(key=lambda c: c["score"], reverse=True)
+        retrieved_chunks = retrieved_chunks[:top_k]
 
         elapsed = time.perf_counter() - start_time
 
@@ -341,7 +362,7 @@ class RAGPipeline:
         is_grounded = top_score >= threshold and len(retrieved_chunks) > 0
 
         # Filter out chunks that fall well below threshold
-        filtered_chunks = [c for c in retrieved_chunks if c["score"] >= max(0.15, threshold * 0.7)]
+        filtered_chunks = [c for c in retrieved_chunks if c["score"] >= max(0.12, threshold * 0.65)]
 
         return {
             "query": query,

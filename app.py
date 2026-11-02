@@ -1,6 +1,7 @@
 """NEXUS RAG — Enterprise Document Intelligence Workspace
 Three-column enterprise architecture inspired by the reference design.
 Light enterprise palette (#F7F9FC / #FFFFFF) with deep navy sidebar (#0F2547).
+Fully responsive, pixel-balanced layout with clean text wrapping and typography.
 """
 
 import time
@@ -34,7 +35,7 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────
-# STYLESHEET: LIGHT ENTERPRISE UI & NAVY SIDEBAR
+# STYLESHEET: RESPONSIVE LIGHT ENTERPRISE UI
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -60,8 +61,6 @@ st.markdown("""
     --radius-sm:     6px;
     --radius-md:     8px;
     --radius-lg:     12px;
-    --radius-xl:     16px;
-    --shadow-sm:     0 1px 3px rgba(16, 24, 40, 0.05);
     --font-sans:     'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono:     'JetBrains Mono', monospace;
 }
@@ -87,46 +86,46 @@ button[kind="header"] {
     display: none !important;
 }
 
-/* TIGHTEN TOP PADDING */
+/* TIGHT TOP PADDING & BALANCED WORKSPACE WIDTH (ENTERPRISE DENSITY) */
 .main .block-container {
-    padding-top: 0.75rem !important;
-    padding-bottom: 1.5rem !important;
-    padding-left: 1.5rem !important;
-    padding-right: 1.5rem !important;
-    max-width: 1480px !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 1560px !important;
 }
 
 /* ── DEEP NAVY SIDEBAR (#0F2547) ── */
+section[data-testid="stSidebar"],
 [data-testid="stSidebar"] {
     background: var(--bg-sidebar) !important;
+    background-color: var(--bg-sidebar) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-    min-width: 260px !important;
-    max-width: 275px !important;
+    min-width: 250px !important;
+    max-width: 265px !important;
 }
-[data-testid="stSidebar"] * {
-    color: #F8FAFC !important;
-}
+section[data-testid="stSidebar"] .block-container,
 [data-testid="stSidebar"] .block-container {
-    padding: 1rem 0.85rem !important;
+    padding: 0.75rem 0.65rem !important;
 }
 
 .sidebar-brand-box {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0.2rem 0.1rem 0.9rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 0.75rem;
+    gap: 9px;
+    padding: 0.2rem 0.1rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 0.65rem;
 }
 .sidebar-brand-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 800;
     color: #FFFFFF !important;
     letter-spacing: -0.02em;
     line-height: 1.2;
 }
 .sidebar-brand-sub {
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 500;
     color: #8B9BB4 !important;
     letter-spacing: 0.04em;
@@ -134,24 +133,185 @@ button[kind="header"] {
     margin-top: 2px;
 }
 
-/* New Chat Primary Action Button */
-.sidebar-new-btn > div > button {
-    background: var(--accent) !important;
+/* SIDEBAR BUTTONS GENERAL OVERRIDE — SOLID NAVY WHEN IDLE, NEVER WHITE */
+section[data-testid="stSidebar"] button,
+section[data-testid="stSidebar"] button[kind="secondary"],
+section[data-testid="stSidebar"] [data-testid="baseButton-secondary"],
+[data-testid="stSidebar"] button {
+    background-color: #17335F !important;
+    background: #17335F !important;
     color: #FFFFFF !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: var(--radius-md) !important;
-    font-weight: 600 !important;
-    font-size: 0.8rem !important;
-    height: 40px !important;
+    font-weight: 500 !important;
+    font-size: 0.77rem !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding: 0.45rem 0.65rem !important;
+    min-height: 36px !important;
+    height: auto !important;
     width: 100% !important;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35) !important;
+    transition: all 120ms ease !important;
+    box-shadow: none !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.35 !important;
+}
+section[data-testid="stSidebar"] button *,
+section[data-testid="stSidebar"] button p,
+section[data-testid="stSidebar"] button span,
+section[data-testid="stSidebar"] button div,
+[data-testid="stSidebar"] button * {
+    color: #FFFFFF !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: left !important;
+    font-size: 0.77rem !important;
+    margin: 0 !important;
+}
+section[data-testid="stSidebar"] button:hover,
+[data-testid="stSidebar"] button:hover {
+    background-color: #1E427B !important;
+    background: #1E427B !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+section[data-testid="stSidebar"] button:hover *,
+[data-testid="stSidebar"] button:hover * {
+    color: #FFFFFF !important;
+}
+
+/* + New Chat Primary Action Button (Targeted by Streamlit container class) */
+.st-key-side_new_btn button,
+div.st-key-side_new_btn button,
+div.st-key-btn_side_new button,
+.sidebar-new-btn button {
+    background-color: #2563EB !important;
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+    border: 1px solid #3B82F6 !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    width: 100% !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 6px !important;
+    text-align: center !important;
 }
-.sidebar-new-btn > div > button:hover {
-    background: var(--accent-hover) !important;
+.st-key-side_new_btn button *,
+div.st-key-side_new_btn button *,
+div.st-key-btn_side_new button *,
+.sidebar-new-btn button * {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    font-size: 0.82rem !important;
+}
+.st-key-side_new_btn button:hover,
+div.st-key-side_new_btn button:hover,
+div.st-key-btn_side_new button:hover,
+.sidebar-new-btn button:hover {
+    background-color: #1D4ED8 !important;
+    background: #1D4ED8 !important;
+}
+
+/* Active Chat Item in Sidebar */
+[class*="st-key-side_active_chat_"] button,
+[class*="st-key-active_chat_"] button,
+[class*="st-key-chat_"].active-chat button {
+    background-color: #1E3A68 !important;
+    background: #1E3A68 !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border-left: 3px solid #2563EB !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+}
+[class*="st-key-side_active_chat_"] button *,
+[class*="st-key-active_chat_"] button *,
+[class*="st-key-chat_"].active-chat button * {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+/* Active Navigation Item in Sidebar */
+.st-key-side_nav_chat_active button,
+.st-key-side_nav_eval_active button,
+.st-key-side_nav_set_active button,
+div[class*="st-key-nav_"][class*="_active"] button {
+    background-color: #1E3A68 !important;
+    background: #1E3A68 !important;
+    color: #FFFFFF !important;
+    border-left: 3px solid #2563EB !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    font-weight: 700 !important;
+}
+.st-key-side_nav_chat_active button *,
+.st-key-side_nav_eval_active button *,
+.st-key-side_nav_set_active button *,
+div[class*="st-key-nav_"][class*="_active"] button * {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+/* Delete Cross Button */
+[class*="st-key-side_del_"] button,
+[class*="st-key-del_"] button,
+.sidebar-del-btn button {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    color: #94A3B8 !important;
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    padding: 0 !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-shadow: none !important;
+}
+[class*="st-key-side_del_"] button *,
+[class*="st-key-del_"] button *,
+.sidebar-del-btn button * {
+    color: #94A3B8 !important;
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+}
+[class*="st-key-side_del_"] button:hover,
+[class*="st-key-del_"] button:hover,
+.sidebar-del-btn button:hover {
+    background-color: rgba(239, 68, 68, 0.25) !important;
+    background: rgba(239, 68, 68, 0.25) !important;
+}
+[class*="st-key-side_del_"] button:hover *,
+[class*="st-key-del_"] button:hover *,
+.sidebar-del-btn button:hover * {
+    color: #EF4444 !important;
+}
+
+/* Sidebar Search Input */
+[data-testid="stSidebar"] .stTextInput input {
+    background-color: #17335F !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: var(--radius-md) !important;
+    font-size: 0.76rem !important;
+    padding: 6px 10px !important;
+}
+[data-testid="stSidebar"] .stTextInput input::placeholder {
+    color: #8B9BB4 !important;
+}
+[data-testid="stSidebar"] .stTextInput input:focus {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3) !important;
 }
 
 .sidebar-nav-label {
@@ -160,96 +320,92 @@ button[kind="header"] {
     color: #8B9BB4 !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin: 1rem 0 0.35rem 0.2rem;
+    margin: 0.9rem 0 0.3rem 0.2rem;
 }
 
-/* Chat history items */
-.sidebar-chat-btn > div > button {
-    background: transparent !important;
-    color: #E2E8F0 !important;
-    border: 1px solid transparent !important;
-    border-radius: var(--radius-sm) !important;
-    font-weight: 500 !important;
-    font-size: 0.77rem !important;
-    text-align: left !important;
-    justify-content: flex-start !important;
-    padding: 0.4rem 0.6rem !important;
-    width: 100% !important;
-}
-.sidebar-chat-btn > div > button:hover {
-    background: var(--bg-sidebar-alt) !important;
-    color: #FFFFFF !important;
-}
-.sidebar-chat-btn.active > div > button {
-    background: var(--bg-sidebar-alt) !important;
-    color: #FFFFFF !important;
-    font-weight: 600 !important;
-    border-left: 3px solid var(--accent) !important;
-}
-
-/* Promo Card in Sidebar */
+/* Sidebar Promo Card */
 .sidebar-bottom-promo {
     background: var(--bg-sidebar-alt);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-lg);
-    padding: 0.75rem;
-    margin-top: 1.5rem;
+    border-radius: var(--radius-md);
+    padding: 0.65rem;
+    margin-top: 1.25rem;
     text-align: center;
 }
 .promo-title {
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: #FFFFFF !important;
-    margin-top: 5px;
+    margin-top: 4px;
 }
 .promo-sub {
-    font-size: 0.63rem;
+    font-size: 0.61rem;
     color: #8B9BB4 !important;
     margin-top: 2px;
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
-/* ── COMPACT MAIN WORKSPACE HEADER ── */
+/* ── RESPONSIVE COMPACT TOP HEADER (FULL WORKSPACE SPAN) ── */
 .top-header-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 0.75rem 1.15rem;
-    margin-bottom: 0.85rem;
-    box-shadow: var(--shadow-sm);
-    min-height: 56px;
+    padding: 0.65rem 1.15rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    width: 100%;
 }
-.header-left-title {
-    font-size: 1.05rem;
+.header-titles {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.header-main-title {
+    font-size: 1.12rem;
     font-weight: 800;
     color: var(--text-primary);
     margin: 0;
-    line-height: 1.2;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
 }
-.header-left-sub {
-    font-size: 0.7rem;
+.header-sub-title {
+    font-size: 0.72rem;
     color: var(--text-secondary);
     margin-top: 2px;
+    line-height: 1.3;
 }
-.header-right-meta {
+.header-pills {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
 }
 .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #F8FAFC !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 20px !important;
+    padding: 4px 10px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+}
+.status-pill span {
+    white-space: nowrap !important;
+    display: inline !important;
+    line-height: 1.2 !important;
 }
 
 /* ── CHAT MESSAGES ── */
@@ -257,11 +413,11 @@ button[kind="header"] {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
 }
 .avatar-circle {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -281,29 +437,29 @@ button[kind="header"] {
 .bubble-user {
     background: var(--user-bubble);
     border: 1px solid #D0E1FD;
-    border-radius: var(--radius-lg);
-    padding: 0.75rem 1rem;
-    max-width: 82%;
-    font-size: 0.86rem;
+    border-radius: var(--radius-md);
+    padding: 0.65rem 0.95rem;
+    max-width: 84%;
+    font-size: 0.84rem;
     color: var(--text-primary);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 .bubble-user-time {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     color: var(--text-secondary);
     text-align: right;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 /* Assistant Card */
 .card-assistant {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 0.95rem 1.15rem;
-    max-width: 95%;
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1.05rem;
+    max-width: 96%;
     width: 100%;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 }
 .assistant-header {
     display: flex;
@@ -311,10 +467,10 @@ button[kind="header"] {
     justify-content: space-between;
     margin-bottom: 6px;
     border-bottom: 1px solid #F1F4F9;
-    padding-bottom: 5px;
+    padding-bottom: 4px;
 }
 .assistant-name {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: var(--text-primary);
     display: flex;
@@ -322,21 +478,21 @@ button[kind="header"] {
     gap: 6px;
 }
 .assistant-time {
-    font-size: 0.63rem;
+    font-size: 0.61rem;
     color: var(--text-muted);
 }
 .assistant-text {
-    font-size: 0.86rem;
-    line-height: 1.65;
+    font-size: 0.84rem;
+    line-height: 1.6;
     color: var(--text-primary);
 }
 
 /* Sources block */
 .card-sources-block {
-    margin-top: 10px;
-    padding-top: 8px;
+    margin-top: 8px;
+    padding-top: 6px;
     border-top: 1px dashed var(--border-color);
-    font-size: 0.73rem;
+    font-size: 0.7rem;
 }
 .sources-title {
     font-weight: 700;
@@ -344,69 +500,182 @@ button[kind="header"] {
     display: flex;
     align-items: center;
     gap: 5px;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 .source-citation-line {
     font-family: var(--font-mono);
     color: var(--accent);
     font-weight: 600;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     margin-bottom: 2px;
 }
 .source-snippet-quote {
     color: var(--text-secondary);
-    font-size: 0.7rem;
-    line-height: 1.45;
+    font-size: 0.68rem;
+    line-height: 1.4;
     background: #F8FAFC;
-    padding: 0.35rem 0.55rem;
+    padding: 0.3rem 0.5rem;
     border-radius: var(--radius-sm);
     border: 1px solid #EEF2F6;
     margin-top: 2px;
 }
 
-/* ── EMPTY STATE ── */
+/* ── EMPTY STATE & CLEAN SUGGESTION CARDS ── */
 .empty-box {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 1.8rem 1.5rem;
+    padding: 1.4rem 1.25rem;
     text-align: center;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 0.85rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    margin-bottom: 0.75rem;
 }
 .empty-title {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.02em;
     margin: 0;
 }
 .empty-sub {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    margin: 4px auto 1.2rem;
-    max-width: 480px;
-    line-height: 1.5;
+    margin: 3px auto 0.9rem;
+    max-width: 460px;
+    line-height: 1.45;
 }
 
-/* Suggestion cards */
-.suggest-card-btn > div > button {
-    background: var(--bg-surface) !important;
+/* SUGGESTION CARD BUTTONS — PROPER MULTI-LINE WRAPPING & RESPONSIVE PADDING */
+[class*="st-key-suggest_card_"] button,
+[class*="st-key-sg_btn_"] button,
+.suggest-card-btn button,
+.suggest-card-btn .stButton > button {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
     border: 1px solid var(--border-color) !important;
     border-radius: var(--radius-md) !important;
-    padding: 0.65rem 0.8rem !important;
+    padding: 0.65rem 0.85rem !important;
     text-align: left !important;
     justify-content: flex-start !important;
-    height: 68px !important;
+    align-items: flex-start !important;
+    min-height: 60px !important;
+    height: auto !important;
     width: 100% !important;
-    box-shadow: var(--shadow-sm) !important;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04) !important;
+    color: var(--text-primary) !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.35 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: all 130ms ease !important;
 }
-.suggest-card-btn > div > button:hover {
+[class*="st-key-suggest_card_"] button div,
+[class*="st-key-suggest_card_"] button p,
+[class*="st-key-suggest_card_"] button span,
+[class*="st-key-sg_btn_"] button div,
+[class*="st-key-sg_btn_"] button p,
+[class*="st-key-sg_btn_"] button span,
+.suggest-card-btn button div,
+.suggest-card-btn button p,
+.suggest-card-btn button span {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    text-align: left !important;
+    color: var(--text-primary) !important;
+    font-size: 0.76rem !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+}
+[class*="st-key-suggest_card_"] button:hover,
+[class*="st-key-sg_btn_"] button:hover,
+.suggest-card-btn button:hover {
     border-color: var(--accent) !important;
-    background: var(--accent-light) !important;
+    background-color: #F8FAFC !important;
+    background: #F8FAFC !important;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.1) !important;
+}
+[class*="st-key-suggest_card_"] button:hover *,
+[class*="st-key-sg_btn_"] button:hover *,
+.suggest-card-btn button:hover * {
+    color: var(--accent) !important;
 }
 
-/* ── COMPOSER (CLEAN SINGLE BORDER, NO FLOATING ARTIFACTS) ── */
+/* SIDEBAR NAVIGATION BUTTONS KEY TARGETING */
+div.st-key-nav_chat button,
+div.st-key-nav_eval button,
+div.st-key-nav_settings button {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: var(--radius-md) !important;
+    font-size: 0.77rem !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    padding: 0.45rem 0.65rem !important;
+    min-height: 36px !important;
+    height: auto !important;
+    margin-bottom: 4px !important;
+}
+div.st-key-nav_chat button *,
+div.st-key-nav_eval button *,
+div.st-key-nav_settings button * {
+    color: #E2E8F0 !important;
+    font-size: 0.77rem !important;
+    text-align: left !important;
+}
+div.st-key-nav_chat button:hover,
+div.st-key-nav_eval button:hover,
+div.st-key-nav_settings button:hover {
+    background-color: #17335F !important;
+    background: #17335F !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    color: #FFFFFF !important;
+}
+div.st-key-nav_chat button:hover *,
+div.st-key-nav_eval button:hover *,
+div.st-key-nav_settings button:hover * {
+    color: #FFFFFF !important;
+}
+
+/* CHAT LIST BUTTONS KEY TARGETING */
+[class*="st-key-chat_"] button {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: var(--radius-md) !important;
+    font-size: 0.76rem !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    padding: 0.42rem 0.62rem !important;
+    min-height: 35px !important;
+    height: auto !important;
+    width: 100% !important;
+}
+[class*="st-key-chat_"] button * {
+    color: #E2E8F0 !important;
+    font-size: 0.76rem !important;
+    text-align: left !important;
+}
+[class*="st-key-chat_"] button:hover {
+    background-color: #17335F !important;
+    background: #17335F !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: #FFFFFF !important;
+}
+[class*="st-key-chat_"] button:hover * {
+    color: #FFFFFF !important;
+}
+
+/* ── COMPOSER (CLEAN SINGLE BORDER) ── */
 .stChatInput {
     padding: 0 !important;
     background: transparent !important;
@@ -416,157 +685,151 @@ button[kind="header"] {
 .stChatInput > div {
     background: #FFFFFF !important;
     border: 1.5px solid var(--border-dark) !important;
-    border-radius: var(--radius-lg) !important;
-    box-shadow: var(--shadow-sm) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05) !important;
     transition: border-color 140ms ease !important;
 }
 .stChatInput > div:focus-within {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12) !important;
 }
 .stChatInput textarea {
     background: transparent !important;
     border: none !important;
     color: var(--text-primary) !important;
-    font-size: 0.86rem !important;
-    padding: 10px 14px !important;
+    font-size: 0.84rem !important;
+    padding: 8px 12px !important;
     box-shadow: none !important;
 }
 
 /* ── RIGHT PANEL (INDEPENDENTLY SCROLLABLE) ── */
 .right-panel-scroll {
-    max-height: calc(100vh - 80px);
+    max-height: calc(100vh - 75px);
     overflow-y: auto;
     padding-right: 2px;
 }
 .right-panel-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.85rem;
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 }
 .panel-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.7rem;
-    padding-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
     border-bottom: 1px solid #F1F4F9;
 }
 .panel-card-title {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 .doc-row-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.55rem 0.7rem;
+    padding: 0.5rem 0.65rem;
     background: #F8FAFC;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    margin-bottom: 6px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 5px;
 }
 .doc-row-left {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     overflow: hidden;
 }
 .doc-row-name {
-    font-size: 0.76rem;
+    font-size: 0.74rem;
     font-weight: 600;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 160px;
+    max-width: 155px;
 }
 .doc-row-meta {
-    font-size: 0.65rem;
+    font-size: 0.63rem;
     color: var(--text-secondary);
 }
 
 .retrieved-item-box {
     background: #F8FAFC;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 0.65rem 0.75rem;
-    margin-bottom: 6px;
-    font-size: 0.72rem;
-    line-height: 1.48;
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 5px;
+    font-size: 0.7rem;
+    line-height: 1.45;
 }
 .retrieved-item-text {
     color: var(--text-primary);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 .retrieved-item-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.65rem;
+    font-size: 0.63rem;
     color: var(--accent);
     font-weight: 600;
     border-top: 1px dashed var(--border-color);
-    padding-top: 4px;
+    padding-top: 3px;
 }
 
 /* Compact Telemetry Grid */
 .telemetry-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 5px;
     margin-top: 4px;
 }
 .telemetry-tile {
     background: #F8FAFC;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    padding: 0.45rem 0.55rem;
+    padding: 0.4rem 0.5rem;
     text-align: center;
 }
 .telemetry-val {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--text-primary);
     font-family: var(--font-mono);
 }
 .telemetry-lbl {
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 /* Badges */
 .badge-clean {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
+    gap: 3px;
+    padding: 2px 5px;
     border-radius: 12px;
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-weight: 700;
 }
 .badge-clean-green { background: #DCFCE7; color: #15803D; }
 .badge-clean-amber { background: #FEF3C7; color: #B45309; }
 .badge-clean-blue  { background: #DBEAFE; color: #1D4ED8; }
-
-.stButton > button {
-    border-radius: var(--radius-md) !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -599,7 +862,7 @@ def init_session_state():
             "groq_key": "",
             "groq_model": GROQ_MODELS[0],
             "top_k": 4,
-            "similarity_threshold": 0.28,
+            "similarity_threshold": 0.22,
             "temperature": 0.1,
             "chunk_size": 500,
             "chunk_overlap": 80,
@@ -659,8 +922,6 @@ def load_sample_document_action():
 # CLEAN HTML RENDERING HELPERS (NO RAW </div> LEAK)
 # ──────────────────────────────────────────────
 def render_assistant_html(content: str, ts: str, badge_markup: str, sources: list) -> str:
-    """Builds a contiguous, single-block HTML string with no internal blank lines, preventing Markdown parser leakage."""
-    # Escape special characters
     safe_content = html.escape(content).replace("\n", "<br>")
 
     sources_markup = ""
@@ -676,7 +937,7 @@ def render_assistant_html(content: str, ts: str, badge_markup: str, sources: lis
                 text_snip += "..."
 
             citations.append(
-                f'<div style="margin-bottom:6px;">'
+                f'<div style="margin-bottom:5px;">'
                 f'<div class="source-citation-line">{src_name} – Page {pg} (Chunk #{cid} · Relevance {score:.2f})</div>'
                 f'<div class="source-snippet-quote">"{text_snip}"</div>'
                 f'</div>'
@@ -689,7 +950,6 @@ def render_assistant_html(content: str, ts: str, badge_markup: str, sources: lis
             f'</div>'
         )
 
-    # Return pure contiguous HTML with ZERO blank lines
     return (
         f'<div class="msg-wrapper">'
         f'<div class="avatar-circle avatar-assistant">{ico.bot(16, "#FFFFFF")}</div>'
@@ -732,10 +992,9 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     # ── Primary Action: + New Chat ──
-    st.markdown('<div class="sidebar-new-btn">', unsafe_allow_html=True)
-    if st.button("+ New Chat", key="btn_side_new"):
-        create_new_chat()
-    st.markdown('</div>', unsafe_allow_html=True)
+    with st.container(key="side_new_btn"):
+        if st.button("+ New Chat", key="btn_side_new"):
+            create_new_chat()
 
     # ── Chat History Header & Search ──
     st.markdown('<div class="sidebar-nav-label">Chat History</div>', unsafe_allow_html=True)
@@ -747,7 +1006,7 @@ with st.sidebar:
         key="chat_search_input"
     )
 
-    # ── Conversation List ──
+    # ── Conversation List (Cleanly Wrapped Text) ──
     for cid, chat in sorted(
         st.session_state.conversations.items(),
         key=lambda item: item[1].get("created_at", datetime.now()),
@@ -758,43 +1017,84 @@ with st.sidebar:
             continue
 
         is_active = (cid == active_chat_id)
-        col_c1, col_c2 = st.columns([8.2, 1.8])
-        with col_c1:
-            cls_name = "sidebar-chat-btn active" if is_active else "sidebar-chat-btn"
-            st.markdown(f'<div class="{cls_name}">', unsafe_allow_html=True)
-            icon_char = "●" if is_active else "▸"
-            if st.button(f"{icon_char} {title[:20]}", key=f"chat_{cid}"):
-                st.session_state.active_chat_id = cid
-                st.session_state.settings["view_mode"] = "chat"
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        with col_c2:
-            if st.button("×", key=f"del_{cid}", help="Delete chat"):
-                delete_chat(cid)
+        chat_box_key = f"side_active_chat_{cid}" if is_active else f"side_chat_{cid}"
+        with st.container(key=chat_box_key):
+            col_c1, col_c2 = st.columns([8.2, 1.8])
+            with col_c1:
+                icon_char = "●" if is_active else "▸"
+                chat_key = f"active_chat_{cid}" if is_active else f"chat_{cid}"
+                if st.button(f"{icon_char} {title[:20]}", key=chat_key):
+                    st.session_state.active_chat_id = cid
+                    st.session_state.settings["view_mode"] = "chat"
+                    st.rerun()
+            with col_c2:
+                with st.container(key=f"side_del_{cid}"):
+                    if st.button("×", key=f"del_{cid}", help="Delete chat"):
+                        delete_chat(cid)
 
-    # ── Navigation Items ──
+    # ── Navigation Items (Clean Navy Buttons) ──
     st.markdown('<div class="sidebar-nav-label">Workspace</div>', unsafe_allow_html=True)
 
-    if st.button("💬 Chat Workspace", key="nav_chat"):
-        st.session_state.settings["view_mode"] = "chat"
-        st.rerun()
+    v_mode = settings.get("view_mode", "chat")
 
-    if st.button("🧪 Evaluation Suite (5 Tests)", key="nav_eval"):
-        st.session_state.settings["view_mode"] = "evaluation"
-        st.rerun()
+    nav_chat_key = "side_nav_chat_active" if v_mode == "chat" else "side_nav_chat_idle"
+    with st.container(key=nav_chat_key):
+        if st.button("💬 Chat Workspace", key="nav_chat"):
+            st.session_state.settings["view_mode"] = "chat"
+            st.rerun()
 
-    if st.button("⚙️ Settings & Inference", key="nav_settings"):
-        st.session_state.settings["view_mode"] = "settings"
-        st.rerun()
+    nav_eval_key = "side_nav_eval_active" if v_mode == "evaluation" else "side_nav_eval_idle"
+    with st.container(key=nav_eval_key):
+        if st.button("🧪 Evaluation Suite (5 Tests)", key="nav_eval"):
+            st.session_state.settings["view_mode"] = "evaluation"
+            st.rerun()
+
+    nav_set_key = "side_nav_set_active" if v_mode == "settings" else "side_nav_set_idle"
+    with st.container(key=nav_set_key):
+        if st.button("⚙️ Settings & Inference", key="nav_settings"):
+            st.session_state.settings["view_mode"] = "settings"
+            st.rerun()
 
     # ── Bottom Promo Card ──
     st.markdown(f"""
     <div class="sidebar-bottom-promo">
-        <div>{ico.nexus_logo(24, "#6EA8FE")}</div>
+        <div>{ico.nexus_logo(22, "#6EA8FE")}</div>
         <div class="promo-title">Document Knowledge Assistant</div>
         <div class="promo-sub">Grounded RAG architecture with verifiable citations</div>
     </div>
     """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════
+#  TOP HEADER BAR (SPANS FULL WORKSPACE WIDTH)
+# ══════════════════════════════════════════════
+is_indexed = pipeline.is_indexed
+ollama_live = OllamaClient.is_available()
+active_model = settings["ollama_model"] if settings["backend"] == "ollama" else settings["groq_model"]
+
+status_dot_color = "#16A34A" if ollama_live else "#DC2626"
+status_label = f"Ollama · {active_model}" if ollama_live else "Ollama Offline"
+
+doc_status_dot = "#16A34A" if is_indexed else "#D97706"
+doc_status_text = "Document Ready" if is_indexed else "No Document"
+
+st.markdown(f"""
+<div class="top-header-bar">
+    <div class="header-titles">
+        <div class="header-main-title">Document-Based AI Chatbot</div>
+        <div class="header-sub-title">Ask questions and get accurate answers derived directly from your documents</div>
+    </div>
+    <div class="header-pills">
+        <div class="status-pill">
+            {ico.dot(7, doc_status_dot)}
+            <span>{doc_status_text}</span>
+        </div>
+        <div class="status-pill">
+            {ico.dot(7, status_dot_color)}
+            <span>{status_label}</span>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 #  COLUMNS 2 & 3: MAIN CHAT & DOCUMENT PANEL
@@ -805,37 +1105,6 @@ col_main, col_panel = st.columns([6.8, 3.2], gap="medium")
 # COLUMN 2: CENTER WORKSPACE (CHAT / EVALUATION)
 # ──────────────────────────────────────────────
 with col_main:
-    # ── Single Source of Truth for Document State ──
-    is_indexed = pipeline.is_indexed
-    ollama_live = OllamaClient.is_available()
-    active_model = settings["ollama_model"] if settings["backend"] == "ollama" else settings["groq_model"]
-
-    status_dot_color = "#16A34A" if ollama_live else "#DC2626"
-    status_label = f"Ollama · {active_model}" if ollama_live else "Ollama Offline"
-
-    doc_status_dot = "#16A34A" if is_indexed else "#D97706"
-    doc_status_text = "Document Ready" if is_indexed else "No Document"
-
-    # ── Compact Top Header ──
-    st.markdown(f"""
-    <div class="top-header-bar">
-        <div>
-            <h1 class="header-left-title">Document-Based AI Chatbot</h1>
-            <div class="header-left-sub">Ask questions and get accurate answers derived directly from your documents</div>
-        </div>
-        <div class="header-right-meta">
-            <div class="status-pill">
-                {ico.dot(8, doc_status_dot)}
-                <span>{doc_status_text}</span>
-            </div>
-            <div class="status-pill">
-                {ico.dot(8, status_dot_color)}
-                <span>{status_label}</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
     # ── VIEW 1: CHAT WORKSPACE ──
     if settings["view_mode"] == "chat":
         messages = current_chat.get("messages", [])
@@ -844,7 +1113,7 @@ with col_main:
             # ── Clean Compact Empty State ──
             st.markdown(f"""
             <div class="empty-box">
-                <div style="margin-bottom:0.4rem">{ico.nexus_logo(32, "#2563EB")}</div>
+                <div style="margin-bottom:0.3rem">{ico.nexus_logo(28, "#2563EB")}</div>
                 <h2 class="empty-title">NEXUS RAG Workspace</h2>
                 <div class="empty-sub">
                     Upload a PDF or TXT document to explore its contents with precision retrieval,
@@ -853,22 +1122,23 @@ with col_main:
             </div>
             """, unsafe_allow_html=True)
 
-            # Suggestion cards (2x2 grid, auto-submits upon click)
-            st.markdown('<div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:0.2rem 0 0.4rem;letter-spacing:0.06em">Suggested Prompts</div>', unsafe_allow_html=True)
+            # Suggestion cards (2x2 grid, properly wrapped text)
+            st.markdown('<div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:0.1rem 0 0.35rem;letter-spacing:0.06em">Suggested Prompts</div>', unsafe_allow_html=True)
 
             sg_cols = st.columns(2)
             for idx, card in enumerate(SUGGESTED_PROMPTS):
                 sg_col = sg_cols[idx % 2]
                 with sg_col:
-                    st.markdown('<div class="suggest-card-btn">', unsafe_allow_html=True)
-                    btn_text = f"✦ {card['title']}\n{card['prompt'][:52]}..."
-                    if st.button(btn_text, key=f"sg_btn_{idx}"):
-                        st.session_state["queued_query"] = card["prompt"]
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    with st.container(key=f"suggest_card_{idx}"):
+                        title_clean = card['title']
+                        desc_clean = card.get('desc', card['prompt'])
+                        btn_text = f"✦ {title_clean}\n{desc_clean}"
+                        if st.button(btn_text, key=f"sg_btn_{idx}"):
+                            st.session_state["queued_query"] = card["prompt"]
+                            st.rerun()
 
             if not is_indexed:
-                st.markdown('<div style="margin-top:0.8rem;text-align:center">', unsafe_allow_html=True)
+                st.markdown('<div style="margin-top:0.75rem;text-align:center">', unsafe_allow_html=True)
                 if st.button("📥 Use Sample Document (5-Page AI Overview)", key="btn_sample_empty"):
                     load_sample_document_action()
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -890,17 +1160,17 @@ with col_main:
                     badge_markup = ""
                     if status_type == "GROUNDED":
                         strength_lbl, strength_color = get_relevance_label(top_score)
-                        badge_markup = f'<span class="badge-clean badge-clean-green">{ico.check_circle(11, "#16A34A")} Grounded ({top_score:.2f} · {strength_lbl})</span>'
+                        badge_markup = f'<span class="badge-clean badge-clean-green">{ico.check_circle(10, "#16A34A")} Grounded ({top_score:.2f} · {strength_lbl})</span>'
                     elif status_type == "INSUFFICIENT_EVIDENCE":
-                        badge_markup = f'<span class="badge-clean badge-clean-amber">{ico.alert_triangle(11, "#D97706")} Insufficient Evidence</span>'
+                        badge_markup = f'<span class="badge-clean badge-clean-amber">{ico.alert_triangle(10, "#D97706")} Insufficient Evidence</span>'
                     elif status_type == "DOCUMENT_REQUIRED":
-                        badge_markup = f'<span class="badge-clean badge-clean-blue">{ico.info(11, "#2563EB")} Document Required</span>'
+                        badge_markup = f'<span class="badge-clean badge-clean-blue">{ico.info(10, "#2563EB")} Document Required</span>'
 
                     assistant_markup = render_assistant_html(content, ts, badge_markup, sources)
                     st.markdown(assistant_markup, unsafe_allow_html=True)
 
         # ── Bottom Composer ──
-        st.markdown('<div style="height:0.6rem"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:0.5rem"></div>', unsafe_allow_html=True)
 
         query_to_process = None
         if "queued_query" in st.session_state and st.session_state["queued_query"]:
@@ -918,8 +1188,8 @@ with col_main:
 
         if query_to_process:
             if not current_chat["messages"]:
-                short_title = query_to_process[:26].strip()
-                current_chat["title"] = f"{short_title}..." if len(query_to_process) > 26 else short_title
+                short_title = query_to_process[:24].strip()
+                current_chat["title"] = f"{short_title}..." if len(query_to_process) > 24 else short_title
 
             curr_ts = datetime.now().strftime("%I:%M %p")
 
@@ -1007,9 +1277,9 @@ with col_main:
     # ── VIEW 2: EVALUATION SUITE (5 TESTS) ──
     elif settings["view_mode"] == "evaluation":
         st.markdown("""
-        <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:12px;padding:1rem 1.15rem;margin-bottom:0.85rem">
-            <h3 style="font-size:1.05rem;font-weight:800;margin:0 0 3px">Assignment Evaluation Suite</h3>
-            <div style="font-size:0.76rem;color:#667085">
+        <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;padding:0.9rem 1.1rem;margin-bottom:0.75rem">
+            <h3 style="font-size:1rem;font-weight:800;margin:0 0 2px">Assignment Evaluation Suite</h3>
+            <div style="font-size:0.74rem;color:#667085">
                 Execute the 5 required test questions directly against the RAG pipeline.
                 Test #5 specifically validates strict anti-hallucination refusal.
             </div>
@@ -1029,12 +1299,12 @@ with col_main:
 
                 with st.container():
                     st.markdown(f"""
-                    <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:6px">
+                    <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:8px;padding:0.65rem 0.8rem;margin-bottom:5px">
                         <div style="display:flex;align-items:center;justify-content:space-between">
-                            <span style="font-weight:700;font-size:0.82rem">[{qid}] {qtype}</span>
-                            <span style="font-size:0.7rem;color:#667085">{item['target_page']}</span>
+                            <span style="font-weight:700;font-size:0.8rem">[{qid}] {qtype}</span>
+                            <span style="font-size:0.68rem;color:#667085">{item['target_page']}</span>
                         </div>
-                        <div style="font-size:0.82rem;margin:4px 0 6px;color:#172033">{qtext}</div>
+                        <div style="font-size:0.8rem;margin:3px 0 5px;color:#172033">{qtext}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1069,7 +1339,7 @@ with col_main:
                             p_label = "PASS (Correct Refusal)" if (should_refuse and res_data["passed"]) else ("PASS" if res_data["passed"] else "FAIL")
 
                             st.markdown(f"""
-                            <div style="background:#F8FAFC;border:1px solid #E4E9F1;border-radius:6px;padding:0.45rem 0.65rem;font-size:0.73rem">
+                            <div style="background:#F8FAFC;border:1px solid #E4E9F1;border-radius:6px;padding:0.4rem 0.6rem;font-size:0.71rem">
                                 <b style="color:{p_color}">{p_label}</b> · Score: <b>{res_data['score']:.3f}</b> · Retrieval: {res_data['latency_ms']}ms<br>
                                 <span style="color:#667085">Answer:</span> {res_data['answer'][:130]}...
                             </div>
@@ -1078,9 +1348,9 @@ with col_main:
     # ── VIEW 3: SETTINGS VIEW ──
     elif settings["view_mode"] == "settings":
         st.markdown("""
-        <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:12px;padding:1rem 1.15rem;margin-bottom:0.85rem">
-            <h3 style="font-size:1.05rem;font-weight:800;margin:0 0 3px">Intelligence & Inference Configuration</h3>
-            <div style="font-size:0.76rem;color:#667085">Configure the local Ollama runtime, retrieval parameters, and embedding models.</div>
+        <div style="background:#FFFFFF;border:1px solid #E4E9F1;border-radius:10px;padding:0.9rem 1.1rem;margin-bottom:0.75rem">
+            <h3 style="font-size:1rem;font-weight:800;margin:0 0 2px">Intelligence & Inference Configuration</h3>
+            <div style="font-size:0.74rem;color:#667085">Configure the local Ollama runtime, retrieval parameters, and embedding models.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1124,7 +1394,7 @@ with col_panel:
     st.markdown(f"""
     <div class="right-panel-card">
         <div class="panel-card-header">
-            <div class="panel-card-title">{ico.file_text(15, "#2563EB")} Uploaded Documents</div>
+            <div class="panel-card-title">{ico.file_text(14, "#2563EB")} Uploaded Documents</div>
             <span class="badge-clean badge-clean-blue">{len(pipeline.documents)} File</span>
         </div>
     """, unsafe_allow_html=True)
@@ -1152,7 +1422,7 @@ with col_panel:
             st.rerun()
     else:
         st.markdown("""
-        <div style="font-size:0.74rem;color:#667085;padding:0.2rem 0 0.6rem;line-height:1.45">
+        <div style="font-size:0.72rem;color:#667085;padding:0.2rem 0 0.5rem;line-height:1.4">
             No document currently indexed. Upload a PDF or TXT to enable semantic search.
         </div>
         """, unsafe_allow_html=True)
@@ -1180,7 +1450,7 @@ with col_panel:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── 2. Retrieved Context Card (Reference Design Exact Match) ──
+    # ── 2. Retrieved Context Card ──
     latest_chunks = []
     if st.session_state.latest_inspection and st.session_state.latest_inspection.get("chunks"):
         latest_chunks = st.session_state.latest_inspection["chunks"]
@@ -1188,7 +1458,7 @@ with col_panel:
     st.markdown(f"""
     <div class="right-panel-card">
         <div class="panel-card-header">
-            <div class="panel-card-title">{ico.layers(15, "#7C3AED")} Retrieved Context</div>
+            <div class="panel-card-title">{ico.layers(14, "#7C3AED")} Retrieved Context</div>
             <span class="badge-clean badge-clean-blue">{len(latest_chunks)} Passages</span>
         </div>
     """, unsafe_allow_html=True)
@@ -1214,7 +1484,7 @@ with col_panel:
             """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div style="font-size:0.73rem;color:#8B9BB4;padding:0.3rem 0.1rem;line-height:1.45">
+        <div style="font-size:0.71rem;color:#8B9BB4;padding:0.25rem 0.1rem;line-height:1.4">
             Submit a query to inspect live semantic passages retrieved from FAISS vectors.
         </div>
         """, unsafe_allow_html=True)
@@ -1230,7 +1500,7 @@ with col_panel:
     st.markdown(f"""
     <div class="right-panel-card">
         <div class="panel-card-header">
-            <div class="panel-card-title">{ico.cpu(15, "#2563EB")} Telemetry</div>
+            <div class="panel-card-title">{ico.cpu(14, "#2563EB")} Telemetry</div>
             <span class="badge-clean badge-clean-blue">{active_model}</span>
         </div>
         <div class="telemetry-grid">
@@ -1243,7 +1513,7 @@ with col_panel:
                 <div class="telemetry-lbl">LLM Inference</div>
             </div>
         </div>
-        <div class="telemetry-grid" style="margin-top:6px">
+        <div class="telemetry-grid" style="margin-top:5px">
             <div class="telemetry-tile">
                 <div class="telemetry-val">{top_score_txt}</div>
                 <div class="telemetry-lbl">Top Match</div>
