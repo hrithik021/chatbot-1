@@ -135,3 +135,4 @@ class GroqClient:
                 "model": model,
                 "error": str(e)
             }
+

@@ -286,3 +286,4 @@ class RAGPipeline:
         self.vector_store = VectorStore(dimension=384)
         self.documents.clear()
         self.is_indexed = False
+
