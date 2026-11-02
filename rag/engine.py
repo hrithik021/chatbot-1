@@ -1,0 +1,288 @@
+"""NEXUS RAG — High Performance RAG Engine
+Document loading, sentence-boundary chunking, SentenceTransformers embedding, and FAISS indexing.
+"""
+
+import time
+import re
+import hashlib
+from typing import List, Dict, Any, Tuple
+import fitz  # PyMuPDF
+import numpy as np
+import faiss
+import streamlit as st
+from sentence_transformers import SentenceTransformer
+
+# ──────────────────────────────────────────────
+# DOCUMENT LOADER
+# ──────────────────────────────────────────────
+class DocumentLoader:
+    """Extracts raw text while strictly preserving page numbering and provenance."""
+
+    @staticmethod
+    def load(data: bytes, filename: str) -> Dict[str, Any]:
+        pages_data: List[Dict[str, Any]] = []
+
+        if filename.lower().endswith(".pdf"):
+            try:
+                with fitz.open(stream=data, filetype="pdf") as doc:
+                    page_count = len(doc)
+                    for i, page in enumerate(doc):
+                        text = page.get_text() or ""
+                        # clean up excessive whitespace while preserving structure
+                        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+                        if text:
+                            pages_data.append({
+                                "page_num": i + 1,
+                                "text": text,
+                                "char_count": len(text)
+                            })
+            except Exception as e:
+                return {"error": f"Failed to parse PDF '{filename}': {str(e)}"}
+        else:
+            # Plain text document
+            try:
+                content = data.decode("utf-8", errors="replace")
+                # Detect page dividers or split by ~2000 chars
+                raw_pages = content.split("---")
+                if len(raw_pages) > 1:
+                    for i, p in enumerate(raw_pages):
+                        clean_text = p.strip()
+                        if clean_text:
+                            pages_data.append({
+                                "page_num": i + 1,
+                                "text": clean_text,
+                                "char_count": len(clean_text)
+                            })
+                else:
+                    # Synthetic pagination every ~2500 characters
+                    chars_per_page = 2200
+                    total_len = len(content)
+                    page_idx = 1
+                    for start in range(0, total_len, chars_per_page):
+                        chunk_text = content[start:start + chars_per_page].strip()
+                        if chunk_text:
+                            pages_data.append({
+                                "page_num": page_idx,
+                                "text": chunk_text,
+                                "char_count": len(chunk_text)
+                            })
+                            page_idx += 1
+            except Exception as e:
+                return {"error": f"Failed to parse text file '{filename}': {str(e)}"}
+
+        total_pages = len(pages_data)
+        if total_pages == 0:
+            return {"error": f"Document '{filename}' appears to be empty."}
+
+        full_text = "\n\n".join(p["text"] for p in pages_data)
+        doc_hash = hashlib.sha256(data).hexdigest()[:16]
+
+        return {
+            "filename": filename,
+            "hash": doc_hash,
+            "pages": pages_data,
+            "page_count": total_pages,
+            "char_count": len(full_text),
+            "size_bytes": len(data),
+            "error": None
+        }
+
+# ──────────────────────────────────────────────
+# TEXT CHUNKER
+# ──────────────────────────────────────────────
+class TextChunker:
+    """Sentence-aware chunker that preserves page provenance."""
+
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 80):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+    def chunk_document(self, doc_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        filename = doc_data["filename"]
+        chunks: List[Dict[str, Any]] = []
+        global_chunk_id = 1
+
+        for page in doc_data["pages"]:
+            page_num = page["page_num"]
+            text = page["text"]
+
+            # Break text into paragraphs/sentences
+            paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+            # If no paragraph breaks, split into sentences
+            if len(paragraphs) <= 1:
+                sentences = re.split(r"(?<=[.!?])\s+", text)
+            else:
+                sentences = []
+                for p in paragraphs:
+                    sentences.extend(re.split(r"(?<=[.!?])\s+", p))
+
+            current_chunk = ""
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+
+                if len(current_chunk) + len(sentence) + 1 <= self.chunk_size:
+                    current_chunk = f"{current_chunk} {sentence}".strip() if current_chunk else sentence
+                else:
+                    if current_chunk:
+                        chunks.append({
+                            "chunk_id": global_chunk_id,
+                            "source": filename,
+                            "page": page_num,
+                            "text": current_chunk,
+                            "char_count": len(current_chunk)
+                        })
+                        global_chunk_id += 1
+
+                        # Carry over overlap
+                        if self.chunk_overlap > 0 and len(current_chunk) > self.chunk_overlap:
+                            overlap_text = current_chunk[-self.chunk_overlap:]
+                            current_chunk = f"{overlap_text} {sentence}".strip()
+                        else:
+                            current_chunk = sentence
+                    else:
+                        current_chunk = sentence
+
+            if current_chunk:
+                chunks.append({
+                    "chunk_id": global_chunk_id,
+                    "source": filename,
+                    "page": page_num,
+                    "text": current_chunk,
+                    "char_count": len(current_chunk)
+                })
+                global_chunk_id += 1
+
+        return chunks
+
+# ──────────────────────────────────────────────
+# EMBEDDINGS & VECTOR STORE
+# ──────────────────────────────────────────────
+@st.cache_resource(show_spinner=False)
+def get_embedding_model(model_name: str = "all-MiniLM-L6-v2") -> SentenceTransformer:
+    """Cached loader for Sentence Transformers model."""
+    return SentenceTransformer(model_name)
+
+class VectorStore:
+    """FAISS-backed vector index with cosine similarity via normalized inner product."""
+
+    def __init__(self, dimension: int = 384):
+        self.dimension = dimension
+        self.index = faiss.IndexFlatIP(dimension)  # Inner Product on L2-normalized vectors = Cosine Similarity
+        self.chunks: List[Dict[str, Any]] = []
+
+    def add_embeddings(self, embeddings: np.ndarray, chunks: List[Dict[str, Any]]) -> None:
+        """Normalizes and adds vectors to FAISS."""
+        # L2-normalize for cosine similarity
+        faiss.normalize_L2(embeddings)
+        self.index.add(embeddings.astype(np.float32))
+        self.chunks.extend(chunks)
+
+    def search(self, query_embedding: np.ndarray, top_k: int = 4) -> List[Dict[str, Any]]:
+        """Searches top-K nearest neighbors and returns chunks with similarity scores."""
+        if self.index.ntotal == 0:
+            return []
+
+        faiss.normalize_L2(query_embedding)
+        k = min(top_k, self.index.ntotal)
+        scores, indices = self.index.search(query_embedding.astype(np.float32), k)
+
+        results = []
+        for score, idx in zip(scores[0], indices[0]):
+            if idx < len(self.chunks):
+                chunk_copy = dict(self.chunks[idx])
+                chunk_copy["score"] = float(score)  # Cosine similarity in [-1, 1]
+                results.append(chunk_copy)
+        return results
+
+# ──────────────────────────────────────────────
+# UNIFIED RAG PIPELINE
+# ──────────────────────────────────────────────
+class RAGPipeline:
+    """End-to-end pipeline encapsulating document ingestion, indexing, and retrieval."""
+
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.model_name = model_name
+        self.embedder = get_embedding_model(model_name)
+        self.vector_store = VectorStore(dimension=384)
+        self.documents: Dict[str, Dict[str, Any]] = {}
+        self.is_indexed = False
+
+    def ingest_document(
+        self,
+        data: bytes,
+        filename: str,
+        chunk_size: int = 500,
+        chunk_overlap: int = 80
+    ) -> Dict[str, Any]:
+        """Loads, chunks, embeds, and indexes a document."""
+        start_time = time.perf_counter()
+
+        # Step 1: Load
+        doc_data = DocumentLoader.load(data, filename)
+        if doc_data.get("error"):
+            return {"success": False, "error": doc_data["error"]}
+
+        # Step 2: Chunk
+        chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        chunks = chunker.chunk_document(doc_data)
+        if not chunks:
+            return {"success": False, "error": "No valid text chunks could be generated."}
+
+        # Step 3: Embed
+        texts = [c["text"] for c in chunks]
+        embeddings = self.embedder.encode(texts, show_progress_bar=False, convert_to_numpy=True)
+
+        # Step 4: Index
+        self.vector_store.add_embeddings(embeddings, chunks)
+
+        elapsed = time.perf_counter() - start_time
+        doc_data["chunk_count"] = len(chunks)
+        doc_data["indexing_time"] = round(elapsed, 3)
+
+        self.documents[filename] = doc_data
+        self.is_indexed = True
+
+        return {
+            "success": True,
+            "filename": filename,
+            "page_count": doc_data["page_count"],
+            "chunk_count": len(chunks),
+            "indexing_time": round(elapsed, 3),
+            "error": None
+        }
+
+    def retrieve(self, query: str, top_k: int = 4, threshold: float = 0.28) -> Dict[str, Any]:
+        """Encodes query and retrieves top chunks with grounding confidence check."""
+        start_time = time.perf_counter()
+
+        query_emb = self.embedder.encode([query], show_progress_bar=False, convert_to_numpy=True)
+        retrieved_chunks = self.vector_store.search(query_emb, top_k=top_k)
+
+        elapsed = time.perf_counter() - start_time
+
+        # Calculate grounding confidence
+        top_score = retrieved_chunks[0]["score"] if retrieved_chunks else 0.0
+        # If top score is above threshold, consider evidence sufficient
+        is_grounded = top_score >= threshold and len(retrieved_chunks) > 0
+
+        # Filter out chunks that are negative or severely irrelevant
+        filtered_chunks = [c for c in retrieved_chunks if c["score"] >= max(0.15, threshold * 0.7)]
+
+        return {
+            "query": query,
+            "chunks": filtered_chunks if is_grounded else retrieved_chunks,
+            "top_score": round(top_score, 4),
+            "is_grounded": is_grounded,
+            "threshold": threshold,
+            "retrieval_latency_ms": round(elapsed * 1000, 2),
+            "total_chunks_available": len(self.vector_store.chunks)
+        }
+
+    def clear(self) -> None:
+        """Resets the vector index and document registry."""
+        self.vector_store = VectorStore(dimension=384)
+        self.documents.clear()
+        self.is_indexed = False
