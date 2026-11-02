@@ -78,15 +78,30 @@ class OllamaClient:
 # GROQ CLOUD CLIENT (FREE TIER CLOUD BACKEND)
 # ──────────────────────────────────────────────
 GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
-    "llama3-8b-8192",
-    "llama3-70b-8192",
     "mixtral-8x7b-32768",
     "gemma2-9b-it"
 ]
 
 class GroqClient:
-    """Free tier cloud client for presentation when local Ollama is unfeasible."""
+    """Free tier cloud client with dynamic model discovery and self-healing fallback."""
+
+    @staticmethod
+    def get_available_models(api_key: str = "") -> List[str]:
+        if not api_key:
+            return GROQ_MODELS
+        try:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            m_list = client.models.list()
+            chat_models = [
+                m.id for m in m_list.data
+                if not any(x in m.id.lower() for x in ["whisper", "guard", "vision", "embed"])
+            ]
+            return chat_models or GROQ_MODELS
+        except Exception:
+            return GROQ_MODELS
 
     @staticmethod
     def generate(
@@ -112,51 +127,71 @@ class GroqClient:
 
         try:
             client = Groq(api_key=api_key)
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                max_tokens=1024
-            )
-            elapsed = time.perf_counter() - start_time
-            answer = resp.choices[0].message.content.strip()
 
-            return {
-                "success": True,
-                "answer": answer,
-                "latency_ms": round(elapsed * 1000, 2),
-                "model": model,
-                "error": None
-            }
+            # 1. Primary Attempt with requested model
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=1024
+                )
+                elapsed = time.perf_counter() - start_time
+                answer = resp.choices[0].message.content.strip()
+
+                return {
+                    "success": True,
+                    "answer": answer,
+                    "latency_ms": round(elapsed * 1000, 2),
+                    "model": model,
+                    "error": None
+                }
+            except Exception as initial_err:
+                err_str = str(initial_err)
+                is_model_issue = any(k in err_str.lower() for k in [
+                    "model_not_found", "does not exist", "decommissioned", "not have access", "invalid_request_error"
+                ])
+                if not is_model_issue:
+                    raise initial_err
+
+                # 2. Dynamic Discovery: query active models directly from user's Groq account
+                m_list = client.models.list()
+                candidates = [
+                    m.id for m in m_list.data
+                    if not any(x in m.id.lower() for x in ["whisper", "guard", "vision", "embed"])
+                    and m.id != model
+                ]
+
+                last_err = err_str
+                for candidate in candidates:
+                    try:
+                        resp = client.chat.completions.create(
+                            model=candidate,
+                            messages=[{"role": "user", "content": prompt}],
+                            temperature=temperature,
+                            max_tokens=1024
+                        )
+                        elapsed = time.perf_counter() - start_time
+                        answer = resp.choices[0].message.content.strip()
+                        return {
+                            "success": True,
+                            "answer": answer,
+                            "latency_ms": round(elapsed * 1000, 2),
+                            "model": candidate,
+                            "error": None
+                        }
+                    except Exception as try_err:
+                        last_err = str(try_err)
+                        continue
+
+                raise Exception(f"All available Groq models failed. Last error: {last_err}")
+
         except Exception as e:
-            err_str = str(e)
-            # Automatic fallback to universally available 8B models if model is not accessible
-            if "model_not_found" in err_str or "does not exist" in err_str:
-                fallback_model = "llama-3.1-8b-instant" if model != "llama-3.1-8b-instant" else "llama3-8b-8192"
-                try:
-                    resp = client.chat.completions.create(
-                        model=fallback_model,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=temperature,
-                        max_tokens=1024
-                    )
-                    elapsed = time.perf_counter() - start_time
-                    answer = resp.choices[0].message.content.strip()
-                    return {
-                        "success": True,
-                        "answer": answer,
-                        "latency_ms": round(elapsed * 1000, 2),
-                        "model": fallback_model,
-                        "error": None
-                    }
-                except Exception as e2:
-                    err_str = f"{err_str} | Fallback error: {str(e2)}"
-
             return {
                 "success": False,
-                "answer": f"Groq API Error: {err_str}",
+                "answer": f"Groq API Error: {str(e)}",
                 "latency_ms": 0.0,
                 "model": model,
-                "error": err_str
+                "error": str(e)
             }
 
